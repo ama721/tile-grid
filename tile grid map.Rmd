@@ -1,0 +1,104 @@
+---
+title: "Data Viz Toolkit: Tale of the Tile Grid Map"
+author: "By: Ama Nyame-Mensah"
+date: ""
+output: html_document
+---
+
+<style type="text/css">
+  h4{
+  font-size: 15pt;
+  color: "#262626";
+  family="Avenir Next";
+  }
+</style>
+  
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE, error=TRUE, message=FALSE, warning=FALSE)
+
+#### PACKAGES + SET UP ####
+# create notin operator
+`%notin%` <- Negate(`%in%`)
+
+# Check if the required packages are installed
+# And if they are not installed, install them
+pckgs <- c("plotly", "tidyverse", "readxl","htmlwidgets", "httr", "ggplot2","RColorBrewer")
+
+if (any(pckgs %notin% rownames(installed.packages())==TRUE)){
+  install.packages(pckgs, repos = c(CRAN = "http://cloud.r-project.org"))
+  }
+  
+sapply(pckgs, FUN = function(x){require(x, character.only = TRUE)})
+
+#### DOWNLOAD THE DATA ####
+template <- tempfile(fileext = ".xlsx")
+GET(url = "https://www.dropbox.com/s/gbrmgkvfvr0ssqq/creating%20tile%20grid.xlsx?dl=1",write_disk(template))
+```
+
+```{r, echo = FALSE}
+#### IMPORT DATA ####
+d_location <- read_excel(template, sheet = "codebook")
+d_data <- read_excel(template, sheet = "data")
+## Do some manipulations ##
+d_full <- 
+# merge the location data with the public assistance % data 
+left_join(d_location, d_data, by = "State") %>%
+#  
+mutate(cat_group = case_when(percentage >= 0 & percentage < 0.12 ~ "1",
+										 percentage >= 0.12 & percentage < 0.24 ~ "2",
+										 percentage >= 0.24 & percentage < 0.36 ~  "3",
+										 percentage >= 0.36 ~ "4",
+										 TRUE ~ "0"),
+		     hex = case_when(cat_group == 1 ~ "#A9D28F",
+										 cat_group == 2 ~ "#FF8F37",
+										 cat_group == 3~  "#FB4C65",
+										 cat_group == 4 ~ "#B23FA1",
+										 cat_group == 0 ~ "#DADADA"))									 
+
+#### PLOT ####
+## Layout for plot
+    # x and y axis formatting
+    xaxis <- list(title = "", zeroline = FALSE, showline = FALSE,
+                  showticklabels = FALSE, showgrid = FALSE,
+                  autotick = FALSE, dtick=1, ticks = "none",
+                  tickcolor = 'transparent', tickwidth = 0.5,
+                  ticklen = 0)
+    
+    yaxis <- list(title = "", zeroline = FALSE, showline = FALSE,
+                  showticklabels = FALSE, showgrid = FALSE,
+                  autotick = FALSE, dtick=1, ticks = "none",
+                  tickcolor = 'transparent', tickwidth = 0.5,
+                  ticklen = 0, autorange = "reversed")
+                  
+    # Set chart margins
+margin <- list(autoexpand = FALSE,
+       l = 0,
+       r = 0,
+       t = 0,
+       b = 0,
+       pad = 0)
+
+```
+<br>
+
+#### Percentage of children in families that received public assistance in 2013 by state
+
+<img style = "margin-left: 60px; margin-top: 10px;margin-bottom:-40px;" src="legend.png" alt="plot legend" width="550" height="35"/>
+```{r, grid-plot, echo = FALSE}
+p <- 
+plot_ly(data = d_full, width = 625, height = 475)  %>%
+  add_trace(type = "scatter", mode = "markers", x = ~Space, 
+            y = ~Row, marker = list(color = ~ hex,size = 45,opacity = 1, 
+                                    line = list(color = '#F2F2F2',width = 2), 
+            symbol = rep("square", times = nrow(d_full))),hoverinfo = "text",
+            text = ~ paste0("<b>", State,": </b>",paste0(percentage*100,"% "))) %>%
+  add_annotations(x = ~Space, y = ~Row,  text = ~`2-Letter Abbr.`, xref = "x", yref = "y",
+                  showarrow = FALSE,  ax = 0, ay = 0, font = list(size = 16, family = "Avenir Next", 
+                                                                  color = "#FFFFFF")) %>%
+  layout(title = "", autosize = FALSE, hoverlabel=list(hoverlabel.opacity= .2, bgcolor="#f2f2f2", bordercolor = "transparent", font=list(color = "#262626", family="Avenir Next", size = 15)), xaxis = xaxis,  yaxis=yaxis, showlegend  = FALSE, plot_bgcolor  = "rgba(0, 0, 0, 0)",paper_bgcolor = "rgba(0, 0, 0, 0)")
+
+p %>%
+plotly::config(displayModeBar = F) %>%
+onRender("function(el, x) {Plotly.d3.select('.cursor-crosshair').style('cursor', 'pointer')}")
+```
+<span style ="color:#313131;font-family:Avenir Next;font-size:12pt;" >Click <a href="https://www.anyamemensah.com/blog/toolkit-tilemaps">here</a> to see the accompanying blog post.</p>
