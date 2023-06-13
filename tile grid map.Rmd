@@ -20,17 +20,9 @@ knitr::opts_chunk$set(echo = TRUE, error=TRUE, message=FALSE, warning=FALSE)
 # create notin operator
 `%notin%` <- Negate(`%in%`)
 
-# Check if the required packages are installed
-# And if they are not installed, install them
+# required packages
 pckgs <- c("plotly", "tidyverse", "readxl","htmlwidgets", "httr", "ggplot2","RColorBrewer")
-
-if (any(pckgs %notin% rownames(installed.packages())==TRUE)){
-  install.packages(pckgs, repos = c(CRAN = "http://cloud.r-project.org"))
-  }
-  
-sapply(pckgs, FUN = function(x){require(x, character.only = TRUE)})
-
-#### DOWNLOAD THE DATA ####
+sapply(pckgs, FUN = function (x){require(x, character.only = TRUE)})# DOWNLOAD THE DATA ####
 template <- tempfile(fileext = ".xlsx")
 GET(url = "https://www.dropbox.com/s/gbrmgkvfvr0ssqq/creating%20tile%20grid.xlsx?dl=1",write_disk(template))
 ```
